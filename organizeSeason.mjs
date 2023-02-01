@@ -1,37 +1,37 @@
 #!/usr/bin/env zx
 
-import {fs, path} from 'zx';
+import { fs, path } from "zx";
 
 const OperationTypes = {
-  MOVE: 'mv',
-  DELETE: 'del',
+  MOVE: "mv",
+  DELETE: "del",
 };
 
 const language = {
-  en: 'english',
-  es: 'spanish',
-  fr: 'french',
-  pt: 'portuguese',
-  ru: 'russian',
-  it: 'italian',
-  de: 'german',
-  nl: 'dutch',
-  ja: 'japanese',
-  ar: 'arabic',
-  zh: 'chinese',
-  ko: 'korean',
-  bg: 'bulgarian',
-  cs: 'czech',
-  da: 'danish',
-  fi: 'finnish',
-  hu: 'hungarian',
-  pl: 'polish',
-  ro: 'romanian',
-  sl: 'slovenian',
-  sv: 'swedish',
-  tr: 'turkish',
-  he: 'hebrew',
-  no: 'norwegian',
+  en: "english",
+  es: "spanish",
+  fr: "french",
+  pt: "portuguese",
+  ru: "russian",
+  it: "italian",
+  de: "german",
+  nl: "dutch",
+  ja: "japanese",
+  ar: "arabic",
+  zh: "chinese",
+  ko: "korean",
+  bg: "bulgarian",
+  cs: "czech",
+  da: "danish",
+  fi: "finnish",
+  hu: "hungarian",
+  pl: "polish",
+  ro: "romanian",
+  sl: "slovenian",
+  sv: "swedish",
+  tr: "turkish",
+  he: "hebrew",
+  no: "norwegian",
 };
 
 const capitalize = (str) => str.charAt(0).toUpperCase() + str.slice(1);
@@ -53,21 +53,24 @@ function processSubtitleDirectory() {
       if (fs.lstatSync(titleDirectoryPath).isDirectory()) {
         files[titleDir].subs = [];
         fs.readdirSync(titleDirectoryPath).forEach((file) => {
-          if (file.endsWith('.srt')) {
+          if (file.endsWith(".srt")) {
             files[titleDir].subs.push(`${titleDirectoryPath}/${file}`);
           }
         });
       } else if (subtitleRegex.test(titleDirectoryPath)) {
-        files[titleDir].subs = [...(files[titleDir].subs ?? []), titleDirectoryPath];
+        files[titleDir].subs = [
+          ...(files[titleDir].subs ?? []),
+          titleDirectoryPath,
+        ];
       }
     }
   });
 }
 
-fs.readdirSync(process.cwd()).forEach(file => {
+fs.readdirSync(process.cwd()).forEach((file) => {
   if (fileRegex.test(file)) {
     const [, name, season, episode, format] = file.match(fileRegex);
-    let formattedName = name.replaceAll('.', ' ').trim();
+    let formattedName = name.replaceAll(".", " ").trim();
     if (/\d{4}$/.test(formattedName)) {
       formattedName = formattedName.slice(0, -5).trim();
     }
@@ -79,8 +82,11 @@ fs.readdirSync(process.cwd()).forEach(file => {
     };
   } else if (trashRegex.test(file)) {
     trashFiles.push(file);
-  } else if (file.trim().toLowerCase().startsWith('sub') && fs.lstatSync(file).isDirectory()) {
-    console.log('SUBS FOUND - Sandwich lovers rejoice!');
+  } else if (
+    file.trim().toLowerCase().startsWith("sub") &&
+    fs.lstatSync(file).isDirectory()
+  ) {
+    console.log("SUBS FOUND - Sandwich lovers rejoice!");
     subsDir = file;
   }
 });
@@ -93,83 +99,124 @@ function planOperations() {
       operations.push({
         type: OperationTypes.MOVE,
         from: `./${key}.${file.format}`,
-        to: `./Episode ${Number(file.episode)}/${file.name} - s${file.season}e${file.episode}.${file.format}`,
+        to: `./Episode ${Number(file.episode)}/${file.name} - s${file.season}e${
+          file.episode
+        }.${file.format}`,
       });
       if (file.subs.length > 1) {
         const subLanguageMap = {};
         file.subs.forEach((sub) => {
-          const filename = sub.split('/').pop();
+          const filename = sub.split("/").pop();
           Object.entries(language).forEach(([isoCode, language]) => {
             if (filename.toLowerCase().includes(language)) {
-              subLanguageMap[isoCode] = [...(subLanguageMap[isoCode] ?? []), sub];
+              subLanguageMap[isoCode] = [
+                ...(subLanguageMap[isoCode] ?? []),
+                sub,
+              ];
             }
           });
         });
         Object.entries(subLanguageMap).forEach(([isoCode, subs]) => {
-          const sizeSortedSubs = subs.sort((a, b) => fs.statSync(a).size - fs.statSync(b).size);
+          const sizeSortedSubs = subs.sort(
+            (a, b) => fs.statSync(a).size - fs.statSync(b).size
+          );
           switch (subs.length) {
             case 3:
-              if (fs.statSync(sizeSortedSubs[0]).size * 2 <= fs.statSync(sizeSortedSubs[2]).size) {
+              if (
+                fs.statSync(sizeSortedSubs[0]).size * 2 <=
+                fs.statSync(sizeSortedSubs[2]).size
+              ) {
                 operations.push({
                   type: OperationTypes.MOVE,
-                  from: sizeSortedSubs[0].replace(process.cwd(), '.'),
-                  to: `./Episode ${Number(file.episode)}/${file.name} - s${file.season}e${file.episode}.${isoCode}.forced.srt`,
+                  from: sizeSortedSubs[0].replace(process.cwd(), "."),
+                  to: `./Episode ${Number(file.episode)}/${file.name} - s${
+                    file.season
+                  }e${file.episode}.${isoCode}.forced.srt`,
                 });
                 operations.push({
                   type: OperationTypes.MOVE,
-                  from: sizeSortedSubs[1].replace(process.cwd(), '.'),
-                  to: `./Episode ${Number(file.episode)}/${file.name} - s${file.season}e${file.episode}.${isoCode}.srt`,
+                  from: sizeSortedSubs[1].replace(process.cwd(), "."),
+                  to: `./Episode ${Number(file.episode)}/${file.name} - s${
+                    file.season
+                  }e${file.episode}.${isoCode}.srt`,
                 });
                 operations.push({
                   type: OperationTypes.MOVE,
-                  from: sizeSortedSubs[2].replace(process.cwd(), '.'),
-                  to: `./Episode ${Number(file.episode)}/${file.name} - s${file.season}e${file.episode}.${isoCode}.sdh.srt`,
+                  from: sizeSortedSubs[2].replace(process.cwd(), "."),
+                  to: `./Episode ${Number(file.episode)}/${file.name} - s${
+                    file.season
+                  }e${file.episode}.${isoCode}.sdh.srt`,
                 });
               } else {
-                warnings.push(`${file.name} - s${file.season}e${file.episode} has 3 ${capitalize(language[isoCode])} subs of similar size, please check manually`);
+                warnings.push(
+                  `${file.name} - s${file.season}e${
+                    file.episode
+                  } has 3 ${capitalize(
+                    language[isoCode]
+                  )} subs of similar size, please check manually`
+                );
               }
               break;
             case 2:
-              if (fs.statSync(sizeSortedSubs[0]).size * 2 <= fs.statSync(sizeSortedSubs[1]).size) {
+              if (
+                fs.statSync(sizeSortedSubs[0]).size * 2 <=
+                fs.statSync(sizeSortedSubs[1]).size
+              ) {
                 operations.push({
                   type: OperationTypes.MOVE,
-                  from: sizeSortedSubs[0].replace(process.cwd(), '.'),
-                  to: `./Episode ${Number(file.episode)}/${file.name} - s${file.season}e${file.episode}.${isoCode}.forced.srt`,
+                  from: sizeSortedSubs[0].replace(process.cwd(), "."),
+                  to: `./Episode ${Number(file.episode)}/${file.name} - s${
+                    file.season
+                  }e${file.episode}.${isoCode}.forced.srt`,
                 });
                 operations.push({
                   type: OperationTypes.MOVE,
-                  from: sizeSortedSubs[1].replace(process.cwd(), '.'),
-                  to: `./Episode ${Number(file.episode)}/${file.name} - s${file.season}e${file.episode}.${isoCode}.srt`,
+                  from: sizeSortedSubs[1].replace(process.cwd(), "."),
+                  to: `./Episode ${Number(file.episode)}/${file.name} - s${
+                    file.season
+                  }e${file.episode}.${isoCode}.srt`,
                 });
               } else {
                 operations.push({
                   type: OperationTypes.MOVE,
-                  from: sizeSortedSubs[0].replace(process.cwd(), '.'),
-                  to: `./Episode ${Number(file.episode)}/${file.name} - s${file.season}e${file.episode}.${isoCode}.srt`,
+                  from: sizeSortedSubs[0].replace(process.cwd(), "."),
+                  to: `./Episode ${Number(file.episode)}/${file.name} - s${
+                    file.season
+                  }e${file.episode}.${isoCode}.srt`,
                 });
                 operations.push({
                   type: OperationTypes.MOVE,
-                  from: sizeSortedSubs[1].replace(process.cwd(), '.'),
-                  to: `./Episode ${Number(file.episode)}/${file.name} - s${file.season}e${file.episode}.${isoCode}.sdh.srt`,
+                  from: sizeSortedSubs[1].replace(process.cwd(), "."),
+                  to: `./Episode ${Number(file.episode)}/${file.name} - s${
+                    file.season
+                  }e${file.episode}.${isoCode}.sdh.srt`,
                 });
               }
               break;
             case 1:
               operations.push({
                 type: OperationTypes.MOVE,
-                from: sizeSortedSubs[0].replace(process.cwd(), '.'),
-                to: `./Episode ${Number(file.episode)}/${file.name} - s${file.season}e${file.episode}.${isoCode}.srt`,
+                from: sizeSortedSubs[0].replace(process.cwd(), "."),
+                to: `./Episode ${Number(file.episode)}/${file.name} - s${
+                  file.season
+                }e${file.episode}.${isoCode}.srt`,
               });
               break;
             default:
-              warnings.push(`${file.name} - s${file.season}e${file.episode} has ${subs.length} ${capitalize(language[isoCode])} subs, please check manually`);
+              warnings.push(
+                `${file.name} - s${file.season}e${file.episode} has ${
+                  subs.length
+                } ${capitalize(language[isoCode])} subs, please check manually`
+              );
           }
         });
       } else {
         operations.push({
           type: OperationTypes.MOVE,
-          from: file.subs[0].replace(process.cwd(), '.'),
-          to: `./Episode ${Number(file.episode)}/${file.name} - s${file.season}e${file.episode}.en.srt`,
+          from: file.subs[0].replace(process.cwd(), "."),
+          to: `./Episode ${Number(file.episode)}/${file.name} - s${
+            file.season
+          }e${file.episode}.en.srt`,
         });
       }
     } else {
@@ -180,7 +227,7 @@ function planOperations() {
       });
     }
   });
-  trashFiles.forEach(file => {
+  trashFiles.forEach((file) => {
     operations.push({
       type: OperationTypes.DELETE,
       from: `./${file}`,
@@ -203,31 +250,45 @@ function printOperation(operation) {
 
 function summarizeOperations(op) {
   op.forEach(printOperation);
-  const deleteOperations = op.filter(operation => operation.type === OperationTypes.DELETE);
-  const moveOperations = op.filter(operation => operation.type === OperationTypes.MOVE);
-  warnings.push(`Planned ${chalk.red(`${deleteOperations.length} DELETE`)} operations and ${chalk.blue(`${moveOperations.length} MOVE`)} operations`);
+  const deleteOperations = op.filter(
+    (operation) => operation.type === OperationTypes.DELETE
+  );
+  const moveOperations = op.filter(
+    (operation) => operation.type === OperationTypes.MOVE
+  );
+  warnings.push(
+    `Planned ${chalk.red(
+      `${deleteOperations.length} DELETE`
+    )} operations and ${chalk.blue(`${moveOperations.length} MOVE`)} operations`
+  );
   let overwriteCount = 0;
-  moveOperations.forEach(({to}) => {
-    moveOperations.filter(({to: otherTo}) => to === otherTo).length > 1 && overwriteCount++;
+  moveOperations.forEach(({ to }) => {
+    moveOperations.filter(({ to: otherTo }) => to === otherTo).length > 1 &&
+      overwriteCount++;
   });
   if (overwriteCount) {
-    warnings.push(`There will be ${chalk.yellow(overwriteCount)} overwrites. DATA LOSS WILL OCCUR!`);
+    warnings.push(
+      `There will be ${chalk.yellow(
+        overwriteCount
+      )} overwrites. DATA LOSS WILL OCCUR!`
+    );
   }
 }
 
 summarizeOperations(operations);
 
+warnings.forEach((warning) => console.log("⚠️ " + warning));
+const shouldContinue = await question("\n\n¿bueno? (y/n):  ");
 
-warnings.forEach(warning => console.log('⚠️ ' + warning));
-const shouldContinue = await question('\n\n¿bueno? (y/n):  ');
-
-if (shouldContinue.toLowerCase() === 'y') {
-  console.log('Purr bestie 💅🏻');
-  operations.forEach(({type, from, to}) => {
-    const fullFrom = from.replace('.', process.cwd());
+if (shouldContinue.toLowerCase() === "y") {
+  console.log("Purr bestie 💅🏻");
+  operations.forEach(({ type, from, to }) => {
+    const fullFrom = from.replace(".", process.cwd());
     if (type === OperationTypes.MOVE) {
-      const fullTo = to.replace('.', process.cwd())
-      fs.mkdirSync(fullTo.substring(0, fullTo.lastIndexOf('/')), {recursive: true});
+      const fullTo = to.replace(".", process.cwd());
+      fs.mkdirSync(fullTo.substring(0, fullTo.lastIndexOf("/")), {
+        recursive: true,
+      });
       fs.renameSync(fullFrom, fullTo);
     } else if (type === OperationTypes.DELETE) {
       fs.unlinkSync(fullFrom);
@@ -239,7 +300,7 @@ if (shouldContinue.toLowerCase() === 'y') {
     console.log(`Cleaned up ${cleanedDirectoriesCount} empty directories`);
   }
 } else {
-  console.log('Wow, you are literally so mean :\'(');
+  console.log("Wow, you are literally so mean :'(");
 }
 
 function cleanEmptyFoldersRecursively(folder) {
