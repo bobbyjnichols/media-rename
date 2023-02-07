@@ -2,6 +2,7 @@
   "name": "media-rename",
   "version": "1.0.0",
   "dependencies": {
+    "cli-progress": "^3.11.2",
     "zx": "^7.1.1"
   },
   "devDependencies": {

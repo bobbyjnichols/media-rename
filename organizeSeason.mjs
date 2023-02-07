@@ -1,5 +1,6 @@
 #!/usr/bin/env zx
 
+import { SingleBar, Presets as ProgressBarPresets } from "cli-progress";
 import { fs, path } from "zx";
 
 const OperationTypes = {
@@ -282,6 +283,8 @@ const shouldContinue = await question("\n\n¿bueno? (y/n):  ");
 
 if (shouldContinue.toLowerCase() === "y") {
   console.log("Purr bestie 💅🏻");
+  const progressBar = new SingleBar({}, ProgressBarPresets.shades_classic);
+  progressBar.start(operations.length, 0);
   operations.forEach(({ type, from, to }) => {
     const fullFrom = from.replace(".", process.cwd());
     if (type === OperationTypes.MOVE) {
@@ -293,7 +296,9 @@ if (shouldContinue.toLowerCase() === "y") {
     } else if (type === OperationTypes.DELETE) {
       fs.unlinkSync(fullFrom);
     }
+    progressBar.increment();
   });
+  progressBar.stop();
   console.log(`Modified ${operations.length} files`);
   const cleanedDirectoriesCount = cleanEmptyFoldersRecursively(process.cwd());
   if (cleanedDirectoriesCount) {
