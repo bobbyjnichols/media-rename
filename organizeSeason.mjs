@@ -308,13 +308,18 @@ if (shouldContinue.toLowerCase() === "y") {
   console.log("Wow, you are literally so mean :'(");
 }
 
+function filterRemovableFiles(filepath) {
+  const filename = path.basename(filepath);
+  return !filename.startsWith(".smb");
+}
+
 function cleanEmptyFoldersRecursively(folder) {
   let count = 0;
   const isDir = fs.statSync(folder).isDirectory();
   if (!isDir) {
     return 0;
   }
-  let files = fs.readdirSync(folder);
+  let files = fs.readdirSync(folder).filter(filterRemovableFiles);
   if (files.length > 0) {
     files.forEach((file) => {
       const fullPath = path.join(folder, file);
